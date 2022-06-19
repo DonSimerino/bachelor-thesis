@@ -1,3 +1,4 @@
+from mesa import Agent, Model
 from mesa.space import SingleGrid
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
@@ -27,42 +28,42 @@ class SchellingAgent(Agent):
 
 class Schelling(Model):
     def __init__():
-      self.height = height
-      self.width = width
-      self.density = density
-      self.minority_pc = minority_pc
-      self.homophily = homophily
+        self.height = height
+        self.width = width
+        self.density = density
+        self.minority_pc = minority_pc
+        self.homophily = homophily
 
-      self.grid = SingleGrid(height, width, torus=True)
-      self.schedule = RandomActivation(self)
-      self.happy = 0
-      self.datacollector = DataCollector(                                   {"happy": "happy"},
-      {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]}
-      )
+        self.grid = SingleGrid(height, width, torus=True)
+        self.schedule = RandomActivation(self)
+        self.happy = 0
+        self.datacollector = DataCollector({"happy": "happy"},
+                                           {"x": lambda a: a.pos[0],
+                                               "y": lambda a: a.pos[1]}
+                                           )
 
-      for cell in self.grid.coord_iter():
-        x = cell[1]
-        y = cell[2]
-        if self.random.random() < self.density:
-          if self.random.random() < self.minority_pc:
-            agent_type = 1
-          else:
-            agent_type = 0
+        for cell in self.grid.coord_iter():
+            x = cell[1]
+            y = cell[2]
+            if self.random.random() < self.density:
+                if self.random.random() < self.minority_pc:
+                    agent_type = 1
+                else:
+                    agent_type = 0
 
-          agent = SchellingAgent((x, y), self, agent_type)
-          self.grid.position_agent(agent, (x, y))
-          self.schedule.add(agent)
+                agent = SchellingAgent((x, y), self, agent_type)
+                self.grid.position_agent(agent, (x, y))
+                self.schedule.add(agent)
 
-      self.running = True   
-      self.datacollector.collect(self)
-
+        self.running = True
+        self.datacollector.collect(self)
 
     def step(self):
-      self.happy = 0  # 1 Reset counter of happy agents
-      self.schedule.step()
-      # 2 collect data
-      self.datacollector.collect(self)
+        self.happy = 0  # 1 Reset counter of happy agents
+        self.schedule.step()
+        # 2 collect data
+        self.datacollector.collect(self)
 
-      # 3 Stop the model if all agents are happy
-      if self.happy == self.schedule.get_agent_count():
-        self.running = False
+        # 3 Stop the model if all agents are happy
+        if self.happy == self.schedule.get_agent_count():
+            self.running = False
