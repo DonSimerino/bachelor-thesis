@@ -1,69 +1,88 @@
-from mesa import Agent, Model
-from mesa.space import SingleGrid
-from mesa.time import RandomActivation
+"""
+The model class for Mesa framework.
+
+Core Objects: Model
+
+"""
+# Mypy; for the `|` operator purpose
+# Remove this __future__ import once the oldest supported Python is 3.10
+from __future__ import annotations
+
+import random
+
 from mesa.datacollection import DataCollector
 
-
-class SchellingAgent(Agent):
-    # 1 Initialization
-    def __init__(self, pos, model, agent_type):
-        super().__init__(pos, model)
-        self.pos = pos
-        self.type = agent_type
-
-    # 2 Step function
-    def step(self):
-        similar = 0
-        # 3 Calculate the number of similar neighbours
-        for neighbor in self.model.grid.neighbor_iter(self.pos):
-            if neighbor.type == self.type:
-                similar += 1
-
-        # 4 Move to a random empty location if unhappy
-        if similar < self.model.homophily:
-            self.model.grid.move_to_empty(self)
-        else:
-            self.model.happy += 1
+# mypy
+from typing import Any
 
 
-class Schelling(Model):
-    def __init__():
-        self.height = height
-        self.width = width
-        self.density = density
-        self.minority_pc = minority_pc
-        self.homophily = homophily
+class Model:
+    """Base class for models."""
 
-        self.grid = SingleGrid(height, width, torus=True)
-        self.schedule = RandomActivation(self)
-        self.happy = 0
-        self.datacollector = DataCollector({"happy": "happy"},
-                                           {"x": lambda a: a.pos[0],
-                                               "y": lambda a: a.pos[1]}
-                                           )
+    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
+        """Create a new model object and instantiate its RNG automatically."""
+        cls._seed = kwargs.get("seed", None)
+        cls.random = random.Random(cls._seed)
+        return object.__new__(cls)
 
-        for cell in self.grid.coord_iter():
-            x = cell[1]
-            y = cell[2]
-            if self.random.random() < self.density:
-                if self.random.random() < self.minority_pc:
-                    agent_type = 1
-                else:
-                    agent_type = 0
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Create a new model. Overload this method with the actual code to
+        start the model.
 
-                agent = SchellingAgent((x, y), self, agent_type)
-                self.grid.position_agent(agent, (x, y))
-                self.schedule.add(agent)
+        Attributes:
+            schedule: schedule object
+            running: a bool indicating if the model should continue running
+
+        """
 
         self.running = True
-        self.datacollector.collect(self)
+        self.schedule = None
+        self.current_id = 0
 
-    def step(self):
-        self.happy = 0  # 1 Reset counter of happy agents
-        self.schedule.step()
-        # 2 collect data
-        self.datacollector.collect(self)
+    def run_model(self) -> None:
+        """Run the model until the end condition is reached. Overload as
+        needed.
 
-        # 3 Stop the model if all agents are happy
-        if self.happy == self.schedule.get_agent_count():
-            self.running = False
+        """
+        while self.running:
+            self.step()
+
+    def step(self) -> None:
+        """A single step. Fill in here."""
+        pass
+
+    def next_id(self) -> int:
+        """Return the next unique ID for agents, increment current_id"""
+        self.current_id += 1
+        return self.current_id
+
+    def reset_randomizer(self, seed: int | None = None) -> None:
+        """Reset the model random number generator.
+
+        Args:
+            seed: A new seed for the RNG; if None, reset using the current seed
+        """
+
+        if seed is None:
+            seed = self._seed
+        self.random.seed(seed)
+        self._seed = seed
+
+    def initialize_data_collector(
+        self, model_reporters=None, agent_reporters=None, tables=None
+    ) -> None:
+        if not hasattr(self, "schedule") or self.schedule is None:
+            raise RuntimeError(
+                "You must initialize the scheduler (self.schedule) before initializing the data collector."
+            )
+        if self.schedule.get_agent_count() == 0:
+            raise RuntimeError(
+                "You must add agents to the scheduler before initializing the data collector."
+            )
+        self.datacollector = DataCollector(
+            model_reporters=model_reporters,
+            agent_reporters=agent_reporters,
+            tables=tables,
+        )
+        # Collect data for the first time during initialization.
+        self.datacollector.collect(self)
