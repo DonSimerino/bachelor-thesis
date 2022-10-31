@@ -14,15 +14,15 @@ LABEL maintainer="rht <rhtbot@protonmail.com>"
 # `docker run --name mymesa_instance -p 8521:8521 -e MODEL_DIR=examples/sugarscape_cg -it mymesa_image`
 # Note: the model directory MUST contain a run.py file.
 
-ENV MODEL_DIR=examples/wolf_sheep
+ENV MODEL_DIR=simulations/forest_fire
 
 # Don't buffer output:
 # https://docs.python.org/3.10/using/cmdline.html?highlight=pythonunbuffered#envvar-PYTHONUNBUFFERED
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /opt/mesa
+WORKDIR /bachelor-thesis
 
-COPY . /opt/mesa
+COPY . /bachelor-thesis
 
 EXPOSE 8521/tcp
 
@@ -39,6 +39,6 @@ EXPOSE 8521/tcp
 #    python3-wheel \
 #    && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install -e /opt/mesa
+RUN pip3 install -e /bachelor-thesis
 
 CMD ["sh", "-c", "cd $MODEL_DIR && python3 run.py"]

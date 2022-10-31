@@ -10,8 +10,8 @@ services:
     build: .
     image: mesa:dev
     volumes:
-      - .:/opt/mesa
+      - .:/bachelor-thesis
     environment:
-      MODEL_DIR: examples/wolf_sheep
+      MODEL_DIR: simulations/forest_fire
     ports:
       - "127.0.0.1:8521:8521"
