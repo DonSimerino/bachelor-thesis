@@ -15,15 +15,12 @@ class InfoAgent(mesa.Agent):
 
     def __init__(self, pos, model):
         """
-        Create a new person.
-        Args:
-            pos: The perons's coordinates on the grid. (unique_id)
-            model: standard model reference for agent.
+        Create a new agent.
         """
         super().__init__(pos, model)
         self.pos = pos
         self.condition = "NoInfo"
-
+  
     def step(self):
         """
         If the person is listening, spread it to uninformed people nearby.
@@ -36,7 +33,7 @@ class InfoAgent(mesa.Agent):
 
         # self.move()
         # if self.wealth > 0:
-        #     self.give_money()
+        #     self.give_money() 
 
     
     def move(self):

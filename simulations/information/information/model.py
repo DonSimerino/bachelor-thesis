@@ -5,18 +5,12 @@ from mesa.datacollection import DataCollector
 
 from .agent import InfoAgent
 
-def compute_gini(model):
-    agent_wealths = [agent.wealth for agent in model.schedule.agents]
-    x = sorted(agent_wealths)
-    N = model.num_agents
-    B = sum(xi * (N - i) for i, xi in enumerate(x)) / (N * sum(x))
-    return 1 + (1 / N) - 2 * B
 
 class InfoModel(Model):
  
     def __init__(self, width=100, height=100, density=0.65):
         """
-        Create a new forest info model.
+        Create a new agent info model.
 
         Args:
             width, height: The size of the grid to model
@@ -38,8 +32,9 @@ class InfoModel(Model):
             if self.random.random() < density:
                 # Create a person
                 new_person = InfoAgent((x, y), self)
-                # Set all trees in the first column on fire.
-                if x == 0:
+
+                # Set all agents in the first column to listening.
+                if x == 0 and y == 0:
                     new_person.condition = "Listening"
                 self.grid.place_agent(new_person, (x, y))
                 self.schedule.add(new_person)
@@ -66,7 +61,7 @@ class InfoModel(Model):
         # collect data
         self.datacollector.collect(self)
 
-        # Halt if no more fire
+        # Halt if no more info
         if self.count_type(self, "Listening") == 0:
             self.running = False
 
