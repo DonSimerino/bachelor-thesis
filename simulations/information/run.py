@@ -1,5 +1,4 @@
-#from information.server import server
-import information
+from information.server import server
 
-#server.launch()
-information.test()
+
+server.launch()

@@ -13,13 +13,15 @@ class InfoAgent(mesa.Agent):
     practice to give one to each agent anyway.
     """
 
-    def __init__(self, pos, model):
+    def __init__(self, pos, model, spread_chance):
         """
         Create a new agent.
         """
         super().__init__(pos, model)
         self.pos = pos
         self.condition = "NoInfo"
+        self.spread_chance = spread_chance
+
   
     def step(self):
         """
@@ -31,25 +33,23 @@ class InfoAgent(mesa.Agent):
                     neighbor.condition = "Listening"
             self.condition = "Informed"
 
-        # self.move()
-        # if self.wealth > 0:
-        #     self.give_money() 
+   
+    # def step(self):
+    #     if self.state is State.INFECTED:
+    #         self.try_to_infect_neighbors()
+    #     self.try_check_situation()
+
+
+    def try_to_infect_neighbors(self):
+        neighbors_nodes = self.model.grid.get_neighbors(self.pos, include_center=False)
+        susceptible_neighbors = [
+            agent
+            for agent in self.model.grid.get_cell_list_contents(neighbors_nodes)
+            if agent.state is State.SUSCEPTIBLE
+        ]
+        for a in susceptible_neighbors:
+            if self.random.random() < self.spread_chance:
+                a.state = State.INFECTED
 
     
-    def move(self):
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos,
-            moore = True,
-            include_center= False)
-        new_position = self.random.choice(possible_steps)
-        self.model.grid.move_agent(self, new_position)
-
-
-    def give_money(self):
-        cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cellmates) > 1:
-            other_agent = self.random.choice(cellmates)
-            other_agent.wealth += 1
-            self.wealth -= 1
-
 
