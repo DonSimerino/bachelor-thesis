@@ -53,22 +53,25 @@ class InfoModel(mesa.Model):
         )
 
         # Create Agents
+        agent_tuple_list = []
         for (contents, x, y) in self.grid.coord_iter():
             if self.random.random() < density:
 
                 agent = InfoAgent((x, y), self, self.spread_chance)
 
-                # Set all agents in the first column to listening.
+                # Set agents in the bottom left corner to listening.
                 if x == 0 and y == 0:
                     agent.condition = "Listening"
                 
                 self.grid.place_agent(agent, (x, y))
                 self.schedule.add(agent)
-        
-        # # Infect some nodes
-        # infected_nodes = self.random.sample(list(self.G), self.initial_outbreak_size)
-        # for a in self.grid.get_cell_list_contents(infected_nodes):
-        #     a.state = State.INFECTED
+                agent_tuple_list.append((x, y))
+
+ 
+        # Infect some nodes
+        infected_nodes = self.random.sample(agent_tuple_list, self.initial_outbreak-1)
+        for a in self.grid.get_cell_list_contents(infected_nodes):
+            a.condition = "Listening"
 
         self.running = True
         self.datacollector.collect(self)
