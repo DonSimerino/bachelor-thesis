@@ -1,42 +1,5 @@
 import mesa
-# from mesa.time import RandomActivation
-# from mesa.space import Grid
-# from mesa import Model
-# from mesa.datacollection import DataCollector
-
-
-class InfoAgent(mesa.Agent):
-    """
-
-    Attributes:
-        x, y: Grid coordinates
-        condition: Can be "NoInfo", "Listening", or "Informed"
-        unique_id: (x,y) tuple.
-
-    unique_id isn't strictly necessary here, but it's good
-    practice to give one to each agent anyway.
-    """
-
-    def __init__(self, pos, model, spread_chance):
-        """
-        Create a new agent.
-        """
-        super().__init__(pos, model)
-        self.pos = pos
-        self.condition = "NoInfo"
-        self.spread_chance = spread_chance
-
-  
-    def step(self):
-        """
-        If the person is listening, spread it to uninformed people nearby.
-        """
-        if self.condition == "Listening":
-            for neighbor in self.model.grid.iter_neighbors(self.pos, True):
-                if neighbor.condition == "NoInfo":
-                    neighbor.condition = "Listening"
-            self.condition = "Informed"
-
+from agent import InfoAgent
 
 
 class InfoModel(mesa.Model):
@@ -61,12 +24,9 @@ class InfoModel(mesa.Model):
             initial_outbreak= 1,
             spread_chance= 0.4,
             misinfo_chance=0.0,
+            receive_chance= 0.4,
             police_chance=0.0):
         
-        # self.width = 7
-        # self.height = 7
-        # self.update_values(10, 10)
-
 
         self.num_nodes = num_nodes
         self.density = density
@@ -75,14 +35,15 @@ class InfoModel(mesa.Model):
         )
         self.spread_chance = spread_chance
         self.misinfo_chance = misinfo_chance
+        self.receive_chance = receive_chance
         self.police_chance = police_chance
 
         
         self.schedule = mesa.time.RandomActivation(self)
         
         # Grid Size (agents) is equal and adjusts accordingly to the number of agents 
-        self.grid = mesa.space.Grid(25, 25, torus=False)
-
+        self.grid = mesa.space.Grid(self.height, self.width, torus=False)
+     
         self.datacollector = mesa.datacollection.DataCollector(
             {
                 "NoInfo": lambda m: self.count_type(m, "NoInfo"),
@@ -116,10 +77,10 @@ class InfoModel(mesa.Model):
         self.schedule.step()
         # collect data
         self.datacollector.collect(self)
-
         # Halt if no more info
         if self.count_type(self, "Listening") == 0:
             self.running = False
+
 
     @staticmethod
     def count_type(model, person_condition):
