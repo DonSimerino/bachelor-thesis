@@ -22,9 +22,9 @@ class InfoModel(mesa.Model):
             num_nodes=10, 
             density=0.65,
             initial_outbreak= 1,
-            spread_chance= 0.4,
-            misinfo_chance=0.0,
-            receive_chance= 0.4,
+            spread_chance= 1,
+            receive_chance= 1,
+            misinfo_chance=0.4,
             police_chance=0.0):
         
 
@@ -34,8 +34,8 @@ class InfoModel(mesa.Model):
             initial_outbreak if initial_outbreak <= num_nodes else num_nodes
         )
         self.spread_chance = spread_chance
-        self.misinfo_chance = misinfo_chance
         self.receive_chance = receive_chance
+        self.misinfo_chance = misinfo_chance
         self.police_chance = police_chance
 
         
@@ -49,6 +49,7 @@ class InfoModel(mesa.Model):
                 "NoInfo": lambda m: self.count_type(m, "NoInfo"),
                 "Listening": lambda m: self.count_type(m, "Listening"),
                 "Informed": lambda m: self.count_type(m, "Informed"),
+                "Misinformed": lambda m: self.count_type(m, "Misinformed"),
             }
         )
 
@@ -57,21 +58,21 @@ class InfoModel(mesa.Model):
         for (contents, x, y) in self.grid.coord_iter():
             if self.random.random() < density:
 
-                agent = InfoAgent((x, y), self, self.spread_chance)
+                agent = InfoAgent((x, y), self, self.spread_chance, self.receive_chance, self.misinfo_chance)
 
                 # Set agents in the bottom left corner to listening.
                 if x == 0 and y == 0:
-                    agent.condition = "Listening"
+                    agent.condition = "Informed"
                 
                 self.grid.place_agent(agent, (x, y))
                 self.schedule.add(agent)
                 agent_tuple_list.append((x, y))
 
  
-        # Infect some nodes
+        # Randomly infect some nodes based on "initial_outbreak"
         infected_nodes = self.random.sample(agent_tuple_list, self.initial_outbreak-1)
         for a in self.grid.get_cell_list_contents(infected_nodes):
-            a.condition = "Listening"
+            a.condition = "Informed"
 
         self.running = True
         self.datacollector.collect(self)
@@ -81,7 +82,7 @@ class InfoModel(mesa.Model):
         # collect data
         self.datacollector.collect(self)
         # Halt if no more info
-        if self.count_type(self, "Listening") == 0:
+        if self.count_type(self, "NoInfo") == 0 and self.count_type(self, "Listening") == 0:
             self.running = False
 
 

@@ -2,7 +2,7 @@ import mesa
 from model import InfoModel
 
 
-COLORS = {"NoInfo": "#FF9999", "Listening": "#9999FF", "Informed": "#00AA00"}
+COLORS = {"NoInfo": "#FF9999", "Listening": "#9999FF", "Informed": "#00AA00", "Misinformed": "#800020"}
 
 def canvas_config(agent):
     """ Portrayal Method for canvas """
@@ -12,7 +12,7 @@ def canvas_config(agent):
     portrayal = {"Shape": "circle", "r": 0.5, "Filled": "true", "Layer": 0}
     (x, y) = agent.pos
     portrayal["x"] = x
-    portrayal["y"] = y
+    portrayal["y"] = y 
     portrayal["Color"] = COLORS[agent.condition]
     return portrayal
 
@@ -32,12 +32,12 @@ pie_chart = mesa.visualization.PieChartModule(
 )
 
 model_params = {
-    "num_nodes": mesa.visualization.Slider("Number of Agents", 10, 10, 100, 1),
+    # "num_nodes": mesa.visualization.Slider("Number of Agents", 10, 10, 100, 1),
     "density": mesa.visualization.Slider("Agent density", 0.65, 0.01, 1.0, 0.01),
     "initial_outbreak": mesa.visualization.Slider("Initial Outbreak", 1, 1, 10, 1),
-    "spread_chance": mesa.visualization.Slider("Spread Chance", 0.0, 0.0, 1.0, 0.1),
+    "spread_chance": mesa.visualization.Slider("Spread Chance", 1, 0.1, 1.0, 0.1),
+    "receive_chance": mesa.visualization.Slider("Receive Info Chance", 1, 0.1, 1.0, 0.1),
     "misinfo_chance": mesa.visualization.Slider("Misinformation Chance", 0.4, 0.0, 1.0, 0.1),
-    "receive_chance": mesa.visualization.Slider("Receive Info Chance", 0.4, 0.0, 1.0, 0.1),
     "police_chance": mesa.visualization.Slider("Police Chance", 0.0, 0.0, 1.0, 0.1),
 }
 
