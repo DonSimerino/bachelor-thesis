@@ -25,7 +25,8 @@ class InfoModel(mesa.Model):
             spread_chance= 1,
             receive_chance= 1,
             misinfo_chance=0.4,
-            police_chance=0.0):
+            police_chance=0.0,
+            include_sirens= False):
         
 
         self.num_nodes = num_nodes
@@ -37,13 +38,15 @@ class InfoModel(mesa.Model):
         self.receive_chance = receive_chance
         self.misinfo_chance = misinfo_chance
         self.police_chance = police_chance
+        self.include_sirens = include_sirens
 
         
         self.schedule = mesa.time.RandomActivation(self)
         
         # Grid Size (agents) is equal and adjusts accordingly to the number of agents 
-        self.grid = mesa.space.Grid(self.height, self.width, torus=False)
-     
+        self.grid = mesa.space.MultiGrid(self.height, self.width, torus=False)
+        agent_locations = [(x,y) for (contents, x, y) in self.grid.coord_iter() if self.random.random() < density]
+
         self.datacollector = mesa.datacollection.DataCollector(
             {
                 "NoInfo": lambda m: self.count_type(m, "NoInfo"),
@@ -54,23 +57,22 @@ class InfoModel(mesa.Model):
         )
 
         # Create Agents
-        agent_tuple_list = []
-        for (contents, x, y) in self.grid.coord_iter():
-            if self.random.random() < density:
+        for (x,y) in agent_locations:
+            agent = InfoAgent((x, y), self, self.spread_chance, self.receive_chance, self.misinfo_chance)
 
-                agent = InfoAgent((x, y), self, self.spread_chance, self.receive_chance, self.misinfo_chance)
-
-                # Set agents in the bottom left corner to listening.
-                if x == 0 and y == 0:
+            if self.include_sirens: # If you want all the corners to start.
+                if (x,y) in [(0,0), (0,24), (24,0), (24,24)]:
+                    agent.condition = "Informed"
+            else: # This is the default start.
+                if (x,y) == (0,0):
                     agent.condition = "Informed"
                 
-                self.grid.place_agent(agent, (x, y))
-                self.schedule.add(agent)
-                agent_tuple_list.append((x, y))
-
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
  
+
         # Randomly infect some nodes based on "initial_outbreak"
-        infected_nodes = self.random.sample(agent_tuple_list, self.initial_outbreak-1)
+        infected_nodes = self.random.sample(agent_locations, self.initial_outbreak-1)
         for a in self.grid.get_cell_list_contents(infected_nodes):
             a.condition = "Informed"
 

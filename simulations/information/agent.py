@@ -2,18 +2,8 @@ import mesa
 
 
 class InfoAgent(mesa.Agent):
-    """
 
-    Attributes:
-        x, y: Grid coordinates
-        condition: Can be "NoInfo", "Listening", or "Informed"
-        unique_id: (x,y) tuple.
-
-    unique_id isn't strictly necessary here, but it's good
-    practice to give one to each agent anyway.
-    """
-
-    def __init__(self, pos, model, spread_chance, receive_chance, misinfo_chance, condition="NoInfo"):
+    def __init__(self, pos, model, spread_chance, receive_chance, misinfo_chance, condition="NoInfo", misinformed= False):
         """ Create a new agent. """
 
         super().__init__(pos, model)
@@ -22,20 +12,9 @@ class InfoAgent(mesa.Agent):
         self.spread_chance = spread_chance
         self.receive_chance = receive_chance
         self.misinfo_chance = misinfo_chance
+        self.misinformed = misinformed
         
 
-  
-    # def step(self):
-    #     """
-    #     If the person is listening, spread it to uninformed people nearby.
-    #     """
-    #     if self.condition == "Listening":
-    #         for neighbor in self.model.grid.iter_neighbors(self.pos, True):
-    #             if neighbor.condition == "NoInfo":
-    #                 neighbor.condition = "Listening"
-    #         self.condition = "Informed"
-
-   
     def step(self):
         """
         Things the agent should try to do in this order:
@@ -47,42 +26,54 @@ class InfoAgent(mesa.Agent):
             -> agents turns "Informed"/"NoInfo" based on "receive_chance" probability
         """
 
-        # neighbors_nodes = self.model.grid.get_neighbors(self.pos, moore=True, include_center=False)
-        # susceptible_neighbors = [
-        #     agent
-        #     for agent in self.model.grid.get_cell_list_contents(neighbors_nodes)
-        #     if agent.condition == "NoInfo"
-        # ] or []
-
         if self.condition == "Informed" or self.condition == "Misinformed":
-            # for a in susceptible_neighbors:
-            #     if self.random.random() < self.spread_chance:
-            #         a.condition = "Listening"
             self.try_to_inform_neighbors()
           
         elif self.condition == "Listening":
             if self.random.random() < self.receive_chance:
-                if self.random.random() < self.misinfo_chance:
+                if self.misinformed or (self.random.random() < self.misinfo_chance):
                     self.condition = "Misinformed"
-                else:
+                    self.misinformed = True
+                else: 
                     self.condition = "Informed"
             else:
                 self.condition = "NoInfo"
  
 
-
-
     def try_to_inform_neighbors(self):
         for neighbor in self.model.grid.iter_neighbors(self.pos, True):
             if neighbor.condition == "NoInfo":
                 if self.random.random() < self.spread_chance:
-                    neighbor.condition = "Listening"
+                    if self.misinformed: # if the agent is already misinformed
+                        neighbor.condition = "Listening"
+                        neighbor.misinformed = True
+                    else:
+                        neighbor.condition = "Listening"
+ 
+              
+    
+    
+    
+        # for neighbor in self.model.grid.iter_neighbors(self.pos, True):
+        #     if neighbor.condition == "NoInfo":
+        #         if self.random.random() < self.spread_chance:
+        #             neighbor.condition = "Listening"
 
         # for a in susceptible_neighbors:
         #     if self.random.random() < self.spread_chance:
         #         a.condition = "Listening"
 
 
+ 
+    # def step(self):
+    #     """
+    #     If the person is listening, spread it to uninformed people nearby.
+    #     """
+    #     if self.condition == "Listening":
+    #         for neighbor in self.model.grid.iter_neighbors(self.pos, True):
+    #             if neighbor.condition == "NoInfo":
+    #                 neighbor.condition = "Listening"
+    #         self.condition = "Informed"
 
 
     # def try_to_infect_neighbors(self):
