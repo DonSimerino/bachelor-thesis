@@ -1,6 +1,6 @@
 import mesa
 from agent import InfoAgent
-
+import pdb
 
 class InfoModel(mesa.Model):
     """A agent model with some number of agents"""
@@ -8,44 +8,40 @@ class InfoModel(mesa.Model):
     height = 25 
     width = 25
 
-    @classmethod
-    def update_values(cls, new_height, new_width):
-        print("im inside update")
-        print("cls hi " + str(cls.height))
-        cls.height = new_height
-        cls.width = new_width
-
     def __init__(
-            self,
-            width=20, 
-            height=20, 
-            num_nodes=10, 
-            density=0.65,
-            initial_outbreak= 1,
-            spread_chance= 1,
-            receive_chance= 1,
-            misinfo_chance=0.4,
-            police_chance=0.0,
-            include_sirens= False):
-        
+            self, 
+            density,
+            initial_outbreak,
+            # experts,
+            # followers,
+            # skeptic,
+            # social_butterfly,
+            # outlaws,
+            agents_personality,
+            message,
+            include_sirens,
+            misinfo_chance):
 
-        self.num_nodes = num_nodes
         self.density = density
-        self.initial_outbreak = (
-            initial_outbreak if initial_outbreak <= num_nodes else num_nodes
-        )
-        self.spread_chance = spread_chance
-        self.receive_chance = receive_chance
-        self.misinfo_chance = misinfo_chance
-        self.police_chance = police_chance
+        self.initial_outbreak = initial_outbreak
+        # self.experts= experts
+        # self.followers= followers 
+        # self.skeptic = skeptic 
+        # self.social_butterfly = social_butterfly 
+        # self.outlaws = outlaws  
+        self.agents_personality = agents_personality
         self.include_sirens = include_sirens
+        self.misinfo_chance = misinfo_chance
+        self.message = message
 
-        
         self.schedule = mesa.time.RandomActivation(self)
         
+
         # Grid Size (agents) is equal and adjusts accordingly to the number of agents 
         self.grid = mesa.space.MultiGrid(self.height, self.width, torus=False)
         agent_locations = [(x,y) for (contents, x, y) in self.grid.coord_iter() if self.random.random() < density]
+        # personality_fractions = {"experts": self.experts, "followers": self.followers, "skeptics": self.skeptic, "social_butterflys": self.social_butterfly, "outlaws": self.outlaws}
+
 
         self.datacollector = mesa.datacollection.DataCollector(
             {
@@ -58,26 +54,35 @@ class InfoModel(mesa.Model):
 
         # Create Agents
         for (x,y) in agent_locations:
-            agent = InfoAgent((x, y), self, self.spread_chance, self.receive_chance, self.misinfo_chance)
+            agent = InfoAgent((x, y), self, self.get_agent_personality(), self.message, self.misinfo_chance)
 
             if self.include_sirens: # If you want all the corners to start.
                 if (x,y) in [(0,0), (0,24), (24,0), (24,24)]:
                     agent.condition = "Informed"
+                    agent.action_queue = [agent.share_information]
             else: # This is the default start.
                 if (x,y) == (0,0):
                     agent.condition = "Informed"
+                    agent.action_queue = [agent.share_information]
                 
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
  
 
-        # Randomly infect some nodes based on "initial_outbreak"
-        infected_nodes = self.random.sample(agent_locations, self.initial_outbreak-1)
-        for a in self.grid.get_cell_list_contents(infected_nodes):
-            a.condition = "Informed"
+        # Randomly infect some nodes
+        self.perform_action_on_sampled_agents(agent_locations, "condition", "Informed", self.initial_outbreak-1)
+
+        # # Randomly set nodes personality
+        # for personality_name, fraction in personality_fractions.items():
+        #     personality_attrs =  self.get_agent_personality(personality_name)
+        #     self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations)*fraction)
+        personality_attrs =  self.get_agent_personality(self.agents_personality.lower())
+        self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations))
+
 
         self.running = True
         self.datacollector.collect(self)
+
 
     def step(self):
         self.schedule.step()
@@ -86,6 +91,33 @@ class InfoModel(mesa.Model):
         # Halt if no more info
         if self.count_type(self, "NoInfo") == 0 and self.count_type(self, "Listening") == 0:
             self.running = False
+
+
+
+    def perform_action_on_sampled_agents(self, agent_locations, action, value, amount):
+        try:
+            # pdb.set_trace()  # set a breakpoint
+
+            nodes = self.random.sample(agent_locations, int(amount))
+            for a in self.grid.get_cell_list_contents(nodes):
+                setattr(a, action, value)
+        except Exception as e:
+            print(f"An exception occurred while performing '{action}' '{value}' '{amount}' on agents: {e}")
+
+
+    def get_agent_personality(self, type_name=None):
+        personalities = {
+            "experts": {'sociality': 1, 'perceived_risk': 1, 'knowledge': 1, 'confidence': 1, 'trust': 1},
+            "followers": {'sociality': 1, 'perceived_risk': .6667, 'knowledge': .3334, 'confidence': .3334, 'trust': 1},
+            "skeptics": {'sociality': .3334, 'perceived_risk': 1, 'knowledge': 1, 'confidence': .6667, 'trust': .3334},
+            "social_butterflys": {'sociality': 1, 'perceived_risk': .3334, 'knowledge': .3334, 'confidence': .6667, 'trust': 1},
+            "outlaws": {'sociality': .3334, 'perceived_risk': .3334, 'knowledge': .3334, 'confidence': .3334, 'trust': .3334},
+            "default": {'sociality': .5, 'perceived_risk': .5, 'knowledge': .5, 'confidence': .5, 'trust': .5}
+        }
+        if type_name is None:
+            return personalities["default"]
+        else:
+            return personalities[type_name]
 
 
     @staticmethod

@@ -35,24 +35,34 @@ pie_chart = mesa.visualization.PieChartModule(
     [{"Label": label, "Color": color} for (label, color) in COLORS.items()],
     #500, 500,  # adjust chart_height and chart_width as needed
 )
+agent_choices = ["Experts", "Followers", "Skeptics", "Social Butterflys", "Outlaws", "Default"]
+message_choices = ["low - low", "high - high", "low - high", "high - low"]
 
 model_params = {
     # "num_nodes": mesa.visualization.Slider("Number of Agents", 10, 10, 100, 1),
     "density": mesa.visualization.Slider("Agent density", 0.65, 0.01, 1.0, 0.01),
     "initial_outbreak": mesa.visualization.Slider("Initial Outbreak", 1, 1, 10, 1),
-    "spread_chance": mesa.visualization.Slider("Spread Chance", 1, 0.1, 1.0, 0.1),
-    "receive_chance": mesa.visualization.Slider("Receive Info Chance", 1, 0.1, 1.0, 0.1),
-    "misinfo_chance": mesa.visualization.Slider("Misinformation Chance", 0.4, 0.0, 1.0, 0.1),
-    "police_chance": mesa.visualization.Slider("Police Chance", 0.0, 0.0, 1.0, 0.1),
+
+    # "experts": mesa.visualization.Slider("Experts", 0, 0, 1.0, 0.1,  description="high level in every category"),
+    # "followers": mesa.visualization.Slider("Followers", 0, 0, 1.0, 0.1, description="low knowledge, confidence"),
+    # "skeptic": mesa.visualization.Slider("Skeptic", 0, 0, 1.0, 0.1, description="low social, trust"),
+    # "social_butterfly": mesa.visualization.Slider("Social Butterfly", 0, 0, 1.0, 0.1, description="low risk, knowledge"),
+    # "outlaws": mesa.visualization.Slider("Outlaws", 0, 0, 1.0, 0.1, description="low level in every category"),
+
+    "misinfo_chance": mesa.visualization.Slider("Misinformation", 0, 0, 1.0, 0.1, description="Regulate the rate of misinformation."),
+    "agents_personality": mesa.visualization.Choice("Agents Personality", "Default", agent_choices),
+    "message" :mesa.visualization.Choice('Message: urgency - complexity', 'low - low', message_choices),
+    
     "include_sirens": mesa.visualization.Checkbox("Include Sirens", False),
+
+    "text": mesa.visualization.StaticText("To change the behaviour using the message, increase complexity for misinfo and urgency for spread rate."),
+
 }
 
 template = "frontend\template.html"
 
 server = mesa.visualization.ModularServer(
     InfoModel, [canvas_element, get_informed_agents, get_misinformed_agents, graph_chart, pie_chart], "Information Spreading", model_params
-    # InfoModel, [canvas_element, get_informed_agents, get_misinformed_agents, graph_chart, pie_chart], "Information Spreading", model_params, static_path=".", template=template
-
 )
 
    
