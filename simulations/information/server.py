@@ -35,6 +35,7 @@ pie_chart = mesa.visualization.PieChartModule(
     [{"Label": label, "Color": color} for (label, color) in COLORS.items()],
     #500, 500,  # adjust chart_height and chart_width as needed
 )
+
 agent_choices = ["Experts", "Followers", "Skeptics", "Social Butterflys", "Outlaws", "Default"]
 message_choices = ["low - low", "high - high", "low - high", "high - low"]
 
@@ -50,12 +51,12 @@ model_params = {
     # "outlaws": mesa.visualization.Slider("Outlaws", 0, 0, 1.0, 0.1, description="low level in every category"),
 
     "misinfo_chance": mesa.visualization.Slider("Misinformation", 0, 0, 1.0, 0.1, description="Regulate the rate of misinformation."),
-    "agents_personality": mesa.visualization.Choice("Agents Personality", "Default", agent_choices),
+    "personality": mesa.visualization.Choice("Agents Personality", "Default", agent_choices),
     "message" :mesa.visualization.Choice('Message: urgency - complexity', 'low - low', message_choices),
     
     "include_sirens": mesa.visualization.Checkbox("Include Sirens", False),
 
-    "text": mesa.visualization.StaticText("To change the behaviour using the message, increase complexity for misinfo and urgency for spread rate."),
+    # "text": mesa.visualization.StaticText("To change the behaviour using the message, increase complexity for misinfo and urgency for spread rate."),
 
 }
 

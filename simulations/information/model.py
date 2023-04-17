@@ -17,7 +17,7 @@ class InfoModel(mesa.Model):
             # skeptic,
             # social_butterfly,
             # outlaws,
-            agents_personality,
+            personality,
             message,
             include_sirens,
             misinfo_chance):
@@ -29,7 +29,7 @@ class InfoModel(mesa.Model):
         # self.skeptic = skeptic 
         # self.social_butterfly = social_butterfly 
         # self.outlaws = outlaws  
-        self.agents_personality = agents_personality
+        self.personality = self.personality_dict(personality.lower())
         self.include_sirens = include_sirens
         self.misinfo_chance = misinfo_chance
         self.message = message
@@ -54,8 +54,8 @@ class InfoModel(mesa.Model):
 
         # Create Agents
         for (x,y) in agent_locations:
-            agent = InfoAgent((x, y), self, self.get_agent_personality(), self.message, self.misinfo_chance)
-
+            agent = InfoAgent((x, y), self, self.personality, self.message, self.misinfo_chance)
+  
             if self.include_sirens: # If you want all the corners to start.
                 if (x,y) in [(0,0), (0,24), (24,0), (24,24)]:
                     agent.condition = "Informed"
@@ -70,15 +70,24 @@ class InfoModel(mesa.Model):
  
 
         # Randomly infect some nodes
-        self.perform_action_on_sampled_agents(agent_locations, "condition", "Informed", self.initial_outbreak-1)
+        for agent in self.sample_agents(agent_locations, self.initial_outbreak-1):
+            agent.condition = "Informed"
+            agent.action_queue = [agent.share_information]
+        # self.perform_action_on_sampled_agents(agent_locations, "condition", "Informed", self.initial_outbreak-1)
 
-        # # Randomly set nodes personality
+
+
+        # Randomly set nodes personality
+        # TODO: bisher werden alle agenten auf die input personality gesetzt -> WIP fraction-personality-zuweisung 
+        # personality_attrs =  self.get_agent_personality(self.agents_personality.lower())
+        # for agent in self.get_agents_sample(agent_locations,  len(agent_locations)):
+        #     agent.parameters = personality_attrs
+
+
         # for personality_name, fraction in personality_fractions.items():
         #     personality_attrs =  self.get_agent_personality(personality_name)
         #     self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations)*fraction)
-        personality_attrs =  self.get_agent_personality(self.agents_personality.lower())
-        self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations))
-
+        # self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations))
 
         self.running = True
         self.datacollector.collect(self)
@@ -94,18 +103,19 @@ class InfoModel(mesa.Model):
 
 
 
-    def perform_action_on_sampled_agents(self, agent_locations, action, value, amount):
-        try:
-            # pdb.set_trace()  # set a breakpoint
+    # def perform_action_on_sampled_agents(self, agent_locations, action, value, amount):
+    #     try:
+    #         # pdb.set_trace()  # set a breakpoint
+    #         nodes = self.random.sample(agent_locations, int(amount))
+    #         for a in self.grid.get_cell_list_contents(nodes):
+    #             setattr(a, action, value)
+    #     except Exception as e:
+    #         print(f"An exception occurred while performing '{action}' '{value}' '{amount}' on agents: {e}")
 
-            nodes = self.random.sample(agent_locations, int(amount))
-            for a in self.grid.get_cell_list_contents(nodes):
-                setattr(a, action, value)
-        except Exception as e:
-            print(f"An exception occurred while performing '{action}' '{value}' '{amount}' on agents: {e}")
+    def sample_agents(self, agent_locations, amount):
+        return self.grid.get_cell_list_contents(self.random.sample(agent_locations, amount))
 
-
-    def get_agent_personality(self, type_name=None):
+    def personality_dict(self, type_name=None):
         personalities = {
             "experts": {'sociality': 1, 'perceived_risk': 1, 'knowledge': 1, 'confidence': 1, 'trust': 1},
             "followers": {'sociality': 1, 'perceived_risk': .6667, 'knowledge': .3334, 'confidence': .3334, 'trust': 1},
