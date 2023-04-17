@@ -22,8 +22,7 @@ Features
 Local Setup (venv)
 ------------
 
-Getting started quickly:
-Clone the repository:
+To get started quickly, first clone the repository:
 
     $ git clone https://github.com/DonSimerino/bachelor-thesis.git
     
@@ -46,7 +45,7 @@ Now you can start the server by running the ./information/run.py:
 Docker Setup
 ------------------------
 
-Expected that Docker is already installed and setup and your system, this should build the image and run the server.
+Having Docker already installed and set up and on your system, first build the image:
 
     $ docker build . -t mymesa_image
     
