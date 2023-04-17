@@ -23,14 +23,20 @@ Local Setup (venv)
 ------------
 
 Getting started quickly:
+Clone the repository:
 
-Create pyrhon venv with cltr + shift + P:
-
-    $ pip install mesa
+    $ git clone https://github.com/DonSimerino/bachelor-thesis.git
+    
+Create a python venv with cltr + shift + P -> "Python: Create Enviroment.":
 
 Click on the script to activate the venv:
 
     .venv\Scripts\Activate.ps1
+    
+ Install Mesa:
+ 
+    $ pip install mesa
+
 
 Now you can start the server by running the ./information/run.py:
 
