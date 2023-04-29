@@ -35,6 +35,7 @@ pie_chart = mesa.visualization.PieChartModule(
     [{"Label": label, "Color": color} for (label, color) in COLORS.items()],
     #500, 500,  # adjust chart_height and chart_width as needed
 )
+
 agent_choices = ["Experts", "Followers", "Skeptics", "Social Butterflys", "Outlaws", "Default"]
 message_choices = ["low - low", "high - high", "low - high", "high - low"]
 
