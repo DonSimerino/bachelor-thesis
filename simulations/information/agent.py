@@ -21,7 +21,7 @@ class InfoAgent(mesa.Agent):
         self.condition = condition
         self.misinformed = misinformed
         urgency, complexity = message.split(" - ")
-        self.message = Message('Go to exit', urgency=urgency, complexity=complexity, misinfo=False)
+        self.message = Message('Go to Exit', urgency, complexity)
 
 
     def step(self):
@@ -43,14 +43,14 @@ class InfoAgent(mesa.Agent):
 
 
     def share_information(self):
+        spread_chance = self.calculate_spread_chance(self.message)
+
         # Find nearby agents
         neighbors = (n for n in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False) if n.condition == "NoInfo")
 
-        # Try to pass on the message to nearby agents
         for neighbor in neighbors:
-
-            spread_chance = self.calculate_spread_chance(self.message)
-
+            
+            # Try to pass on the message to nearby agents
             if random.random() < spread_chance:
                 neighbor.condition = "Listening"
                 neighbor.action_queue = [neighbor.receive_information]
@@ -80,10 +80,6 @@ class InfoAgent(mesa.Agent):
     def wait(self):
         # Do nothing (action_queue default).
         pass
-
-    def __str__(self):
-        action_queue_str = [f"{func.__name__}" for func in self.action_queue] # this line has changed
-        return f"Agent {self.unique_id}: condition={self.condition}, action_queue={action_queue_str}"
 
 
     def calculate_spread_chance(self, message):
@@ -123,6 +119,10 @@ class InfoAgent(mesa.Agent):
         receive_chance = (sociality + knowledge + trust) / 3
         return receive_chance
     
+    
+    def __str__(self):
+            action_queue_str = [f"{func.__name__}" for func in self.action_queue] # this line has changed
+            return f"Agent {self.unique_id}: condition={self.condition}, action_queue={action_queue_str}"
 
 
 class Message:
