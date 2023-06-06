@@ -17,7 +17,7 @@ class InfoModel(mesa.Model):
             # skeptic,
             # social_butterfly,
             # outlaws,
-            personality,
+            agents_personality,
             message,
             include_sirens,
             misinfo_chance):
@@ -29,7 +29,7 @@ class InfoModel(mesa.Model):
         # self.skeptic = skeptic 
         # self.social_butterfly = social_butterfly 
         # self.outlaws = outlaws  
-        self.personality = self.get_personality(personality.lower())
+        self.personality = self.get_personality(agents_personality.lower())
         self.include_sirens = include_sirens
         self.misinfo_chance = misinfo_chance
         self.message = message
