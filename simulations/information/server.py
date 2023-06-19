@@ -55,7 +55,7 @@ model_params = {
 
     "_blank_": mesa.visualization.StaticText("­"),
     
-    "agents_personality": mesa.visualization.Choice("Agents Personality", "Default", agent_choices),
+    "personality": mesa.visualization.Choice("Agents Personality", "Default", agent_choices),
     "_blank2w_": mesa.visualization.StaticText("­"),
 
     "message" :mesa.visualization.Choice('Message: urgency - complexity', 'low - low', message_choices),
