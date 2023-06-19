@@ -1,5 +1,6 @@
 import mesa
 import random
+import math
 import time
 # import pdb
 # pdb.set_trace()  # set a breakpoint
@@ -8,18 +9,22 @@ import time
 
 class InfoAgent(mesa.Agent):
 
-    def __init__(self, pos, model, personality, message, misinfo_chance, condition="NoInfo" , misinformed= False):
+    def __init__(self, pos, model, personality, message, condition="Unaware"):
         """ Create a new agent. """
 
         super().__init__(pos, model)
         self.pos = pos
         self.action_queue = [self.wait]
-        self.parameters = personality
-        self.motives = ['physical', 'emotional', 'social']
-        self.friends = []
-        self.misinfo_chance = misinfo_chance
+        self.personality_type = personality[0]
+        self.parameters = personality[1]
         self.condition = condition
-        self.misinformed = misinformed
+
+        self.sensitivity_index = 1#personality["neuroticism"]
+        self.contagion_parameter = 0.1
+        self.social_reinforcement_factor = 0.1
+        self.amount_of_tries = 0
+        self.wait_counter = 0
+
         urgency, complexity = message.split(" - ")
         self.message = Message('Go to Exit', urgency, complexity)
 
@@ -31,7 +36,7 @@ class InfoAgent(mesa.Agent):
         1. If the agent is informed, spread it to uninformed agents nearby.
             -> based on the "spread_chance" probability 
         2. If the agent is listening, the information is analyzed with two outcomes:
-            -> agents turns "Informed"/"NoInfo" based on "receive_chance" probability
+            -> agents turns "Informed"/"Unaware" based on "receive_chance" probability
                 -> and "Misinformed" based on "misinfo_chance" probability
         """
         # Get the next action from the action_queue
@@ -41,84 +46,86 @@ class InfoAgent(mesa.Agent):
         next_action()
 
 
-
+    # Condition: "Disseminative" -> "Informed" (done)
     def share_information(self):
-        spread_chance = self.calculate_spread_chance(self.message)
 
-        # Find nearby agents
-        neighbors = (n for n in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False) if n.condition == "NoInfo")
+        # Select neighbor based on dij
+        neighbor = self.choose_neighbor()
 
-        for neighbor in neighbors:
-            
-            # Try to pass on the message to nearby agents
-            if random.random() < spread_chance:
-                neighbor.condition = "Listening"
-                neighbor.action_queue = [neighbor.receive_information]
+        if neighbor:
+  
+            # Try to pass on the message
+            if random.random() < neighbor.sensitivity_index:
+                neighbor.action_queue = [neighbor.accept_information]
                 neighbor.message = self.message
-               
-                if self.misinformed: # if the agent is already misinformed
-                    neighbor.misinformed = True
-
-
-    def receive_information(self):
-        receive_chance = self.calculate_receive_chance(self.message)
-
-        if random.random() < receive_chance:
-            if self.misinformed:
-                self.condition = "Misinformed"
-                self.action_queue = [self.share_information]
-            else: 
-                self.condition = "Informed"
-                self.action_queue = [self.share_information]
-
-        else:
-            self.condition = "NoInfo"
+            
+            self.condition = "Informed"
+            self.action_queue= [self.try_disseminate]
+            #TODO: Mark sender as +1 or smth -> can only send once  
+        else:            
+            self.condition = "Informed"
             self.action_queue = [self.wait]
 
 
 
+    # Condition: "Unaware" -> "Informed"
+    def accept_information(self):
+        b = 0.8#self.social_reinforcement_factor
+        m = 2#self.amount_of_tries
+        x = 0.3#self.contagion_parameter
+
+        accept_chance = 1 - (1 - x) * math.exp(-b * (m - 1))
+        # print(f"accept_chance {accept_chance}")
+
+
+        if random.random() < accept_chance:
+            self.condition = "Informed"
+            self.action_queue = [self.try_disseminate]
+        else:
+            self.condition = "Unaware"
+            self.action_queue = [self.wait]
+
+
+    # Condition: "Informed" -> "Disseminative" / "Panic" -> "Exhausted"
+    def try_disseminate(self):
+
+        if self.condition == "Informed":
+            choose_dissemination = 0.8
+            choose_panic = 0.1
+
+        if random.random() < choose_dissemination:
+            self.condition = "Disseminative"
+            self.action_queue = [self.share_information]
+
+        elif random.random() < choose_panic:
+            self.condition = "Panic"
+            self.action_queue = [self.wait]
+
+
+    def choose_neighbor(self):
+        # Find nearby agents
+        neighbors = (n for n in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False) if n.condition == "Unaware")
+        
+        try:
+            target = next(neighbors)
+        except StopIteration:
+            print("No neighbor found.")
+            target = ""
+        return target
+
+
+
     def wait(self):
-        # Do nothing (action_queue default).
-        pass
+        if self.condition == "Panic":
+            if self.wait_counter < 10:
+                self.wait_counter += 1
+            else:
+                self.condition = "Exhausted"
+                self.wait_counter = 0
+        else:
+            # Handle the case when the condition is not "Panic"
+            pass
 
-
-    def calculate_spread_chance(self, message):
-        """
-        Tries to find the average between the agents: sociality, perceived_risk and confidence 
-            message.urgency should influence perceived_risk
-
-        """
-        sociality, perceived_risk, confidence = self.parameters['sociality'], self.parameters['perceived_risk'], self.parameters['confidence']
-
-        # If the message is complex, increase risk perceivement
-        if message.urgency == 'high':
-            perceived_risk *= 1.8
-
-        # Calculate the average spread chance
-        spread_chance = (sociality + perceived_risk + confidence) / 3
-        return spread_chance
-
-
-    def calculate_receive_chance(self, message):
-        """
-        Tries to find the average between the agents: sociality, knowledge and trust
-            message.complexity should influence knowledge
-
-        """
-        sociality, knowledge, trust = self.parameters['sociality'], self.parameters['knowledge'], self.parameters['trust']
-
-        # If the message is complex, lower knowledge
-        if message.complexity == 'high':
-            knowledge *= 0.8
-
-        # If the message is too complex, the agents misunderstands.
-        if self.misinfo_chance > knowledge:
-            self.misinformed = True
-
-        # Calculate the average spread chance
-        receive_chance = (sociality + knowledge + trust) / 3
-        return receive_chance
-    
     
     def __str__(self):
             action_queue_str = [f"{func.__name__}" for func in self.action_queue] # this line has changed
@@ -135,3 +142,5 @@ class Message:
 
     def __str__(self):
         return f"Message: topic={self.topic}, urgency={self.urgency}, complexity={self.complexity}, misinfo={self.misinfo}"
+
+

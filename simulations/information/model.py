@@ -1,5 +1,6 @@
 import mesa
 from agent import InfoAgent
+import random
 import pdb
 
 class InfoModel(mesa.Model):
@@ -12,26 +13,16 @@ class InfoModel(mesa.Model):
             self, 
             density,
             initial_outbreak,
-            # experts,
-            # followers,
-            # skeptic,
-            # social_butterfly,
-            # outlaws,
             personality,
             message,
-            include_sirens,
-            misinfo_chance):
+            include_sirens):
 
         self.density = density
         self.initial_outbreak = initial_outbreak
-        # self.experts= experts
-        # self.followers= followers 
-        # self.skeptic = skeptic 
-        # self.social_butterfly = social_butterfly 
-        # self.outlaws = outlaws  
+     
         self.personality = self.get_personality(personality.lower())
+
         self.include_sirens = include_sirens
-        self.misinfo_chance = misinfo_chance
         self.message = message
 
         self.schedule = mesa.time.RandomActivation(self)
@@ -40,30 +31,30 @@ class InfoModel(mesa.Model):
         # Grid Size (agents) is equal and adjusts accordingly to the number of agents 
         self.grid = mesa.space.MultiGrid(self.height, self.width, torus=False)
         agent_locations = [(x,y) for (contents, x, y) in self.grid.coord_iter() if self.random.random() < density]
-        # personality_fractions = {"experts": self.experts, "followers": self.followers, "skeptics": self.skeptic, "social_butterflys": self.social_butterfly, "outlaws": self.outlaws}
 
 
         self.datacollector = mesa.datacollection.DataCollector(
             {
-                "NoInfo": lambda m: self.count_type(m, "NoInfo"),
-                "Listening": lambda m: self.count_type(m, "Listening"),
+                "Unaware": lambda m: self.count_type(m, "Unaware"),
                 "Informed": lambda m: self.count_type(m, "Informed"),
-                "Misinformed": lambda m: self.count_type(m, "Misinformed"),
+                "Disseminative": lambda m: self.count_type(m, "Disseminative"),
+                "Panic": lambda m: self.count_type(m, "Panic"),
+                "Exhausted": lambda m: self.count_type(m, "Exhausted"),
             }
         )
 
         # Create Agents
         for (x,y) in agent_locations:
-            agent = InfoAgent((x, y), self, self.personality, self.message, self.misinfo_chance)
+            agent = InfoAgent((x, y), self, self.personality, self.message)
   
             if self.include_sirens: # If you want all the corners to start.
                 if (x,y) in [(0,0), (0,24), (24,0), (24,24)]:
                     agent.condition = "Informed"
-                    agent.action_queue = [agent.share_information]
+                    agent.action_queue = [agent.try_disseminate]
             else: # This is the default start.
                 if (x,y) == (0,0):
                     agent.condition = "Informed"
-                    agent.action_queue = [agent.share_information]
+                    agent.action_queue = [agent.try_disseminate]
                 
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
@@ -72,22 +63,44 @@ class InfoModel(mesa.Model):
         # Randomly infect some nodes
         for agent in self.sample_agents(agent_locations, self.initial_outbreak-1):
             agent.condition = "Informed"
-            agent.action_queue = [agent.share_information]
-        # self.perform_action_on_sampled_agents(agent_locations, "condition", "Informed", self.initial_outbreak-1)
+            agent.action_queue = [agent.try_disseminate]
 
 
+        # Heterogeneous agent distribution
+        if personality.lower() == "heterogeneous":
+            fractions = self.get_personality("heterogeneous")[1] 
+            groups = list(fractions.keys())
+            group_agents = {group: [] for group in groups}
 
-        # Randomly set nodes personality
-        # TODO: bisher werden alle agenten auf die input personality gesetzt -> WIP fraction-personality-zuweisung 
-        # personality_attrs =  self.get_agent_personality(self.agents_personality.lower())
-        # for agent in self.get_agents_sample(agent_locations,  len(agent_locations)):
-        #     agent.parameters = personality_attrs
+            # Assign each agent to a group based on the fractions
+            for agent in self.sample_agents(agent_locations,  len(agent_locations)):
+                group = random.choices(groups, weights=list(fractions.values()))[0]
+                group_agents[group].append(agent)
 
+            # Assign each agent their respective personalty
+            for group, agents in group_agents.items():
+                for agent in agents:
+                    agent.personality_type = group
+                    agent.parameters = self.get_personality(group)[1] 
+                
+                
 
-        # for personality_name, fraction in personality_fractions.items():
-        #     personality_attrs =  self.get_agent_personality(personality_name)
-        #     self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations)*fraction)
-        # self.perform_action_on_sampled_agents(agent_locations, "parameters", personality_attrs, len(agent_locations))
+        # # Test heterogeneous distribution
+        # count_personality = {
+        # 'confident': 0,
+        # 'reserved': 0,
+        # 'resilient': 0,
+        # 'undercontrolled': 0,
+        # 'overcontrolled': 0
+        # }
+
+        # for agent in self.grid.get_cell_list_contents(agent_locations):
+        #     if agent.personality_type in count_personality:
+        #         count_personality[agent.personality_type] += 1
+
+        # for personality, count in count_personality.items():
+        #     print(f"{personality}: {count}")
+
 
         self.running = True
         self.datacollector.collect(self)
@@ -98,36 +111,29 @@ class InfoModel(mesa.Model):
         # collect data
         self.datacollector.collect(self)
         # Halt if no more info
-        if self.count_type(self, "NoInfo") == 0 and self.count_type(self, "Listening") == 0:
+        if self.count_type(self, "Unaware") == 0: #and self.count_type(self, "Listening") == 0:
             self.running = False
 
 
 
-    # def perform_action_on_sampled_agents(self, agent_locations, action, value, amount):
-    #     try:
-    #         # pdb.set_trace()  # set a breakpoint
-    #         nodes = self.random.sample(agent_locations, int(amount))
-    #         for a in self.grid.get_cell_list_contents(nodes):
-    #             setattr(a, action, value)
-    #     except Exception as e:
-    #         print(f"An exception occurred while performing '{action}' '{value}' '{amount}' on agents: {e}")
+# Helper functions
 
     def sample_agents(self, agent_locations, amount):
         return self.grid.get_cell_list_contents(self.random.sample(agent_locations, amount))
 
     def get_personality(self, type_name=None):
         personalities = {
-            "experts": {'sociality': 1, 'perceived_risk': 1, 'knowledge': 1, 'confidence': 1, 'trust': 1},
-            "followers": {'sociality': 1, 'perceived_risk': .6667, 'knowledge': .3334, 'confidence': .3334, 'trust': 1},
-            "skeptics": {'sociality': .3334, 'perceived_risk': 1, 'knowledge': 1, 'confidence': .6667, 'trust': .3334},
-            "social_butterflys": {'sociality': 1, 'perceived_risk': .3334, 'knowledge': .3334, 'confidence': .6667, 'trust': 1},
-            "outlaws": {'sociality': .3334, 'perceived_risk': .3334, 'knowledge': .3334, 'confidence': .3334, 'trust': .3334},
-            "default": {'sociality': .5, 'perceived_risk': .5, 'knowledge': .5, 'confidence': .5, 'trust': .5}
+            "confident": {'agreeableness': 1, 'openness': 1, 'conscientiousness': 1, 'extraversion': 1, 'neuroticism': 0.2},
+            "reserved": {'agreeableness': 1, 'openness': .6667, 'conscientiousness': .3334, 'extraversion': .3334, 'neuroticism': 0.2},
+            "resilient": {'agreeableness': .3334, 'openness': 1, 'conscientiousness': 1, 'extraversion': .6667, 'neuroticism': 0.2},
+            "undercontrolled": {'agreeableness': 1, 'openness': .3334, 'conscientiousness': .3334, 'extraversion': .6667, 'neuroticism': 0.2},
+            "overcontrolled": {'agreeableness': .3334, 'openness': .3334, 'conscientiousness': .3334, 'extraversion': .3334, 'neuroticism': 0.2},
+            "heterogeneous": {'confident': 0.221, 'reserved': 0.2541, 'resilient': 0.1631, 'undercontrolled': 0.2401, 'overcontrolled': 0.1217}
         }
-        if type_name is None:
-            return personalities["default"]
-        else:
-            return personalities[type_name]
+        return next((key, value) for key, value in personalities.items() if key == type_name)
+
+      
+
 
 
     @staticmethod
@@ -139,4 +145,14 @@ class InfoModel(mesa.Model):
         for agent in model.schedule.agents:
             if agent.condition == person_condition:
                 count += 1
+        return count
+
+    @staticmethod
+    def count_all(model):
+        """
+        Helper method to count agents in a given condition in a given model.
+        """
+        count = 0
+        for agent in model.schedule.agents:
+            count += 1
         return count
