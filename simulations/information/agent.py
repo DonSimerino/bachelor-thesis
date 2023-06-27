@@ -70,6 +70,7 @@ class InfoAgent(mesa.Agent):
 
     # Condition: "Unaware" -> "Informed"
     def accept_information(self):
+        # TODO: b -> social reinforcement || m -> amount of tries || x -> openess/ extraversion
         b = 0.8#self.social_reinforcement_factor
         m = 2#self.amount_of_tries
         x = 0.3#self.contagion_parameter
@@ -88,10 +89,9 @@ class InfoAgent(mesa.Agent):
 
     # Condition: "Informed" -> "Disseminative" / "Panic" -> "Exhausted"
     def try_disseminate(self):
-
-        if self.condition == "Informed":
-            choose_dissemination = 0.8
-            choose_panic = 0.1
+        #TODO: panic, disseminate y -> neuroticism
+        choose_dissemination = 0.8 # 1- self.neuroticism
+        choose_panic = 0.1 #self.neuroticism
 
         if random.random() < choose_dissemination:
             self.condition = "Disseminative"
@@ -103,9 +103,14 @@ class InfoAgent(mesa.Agent):
 
 
     def choose_neighbor(self):
+        #TODO: give agents 'priority_factor' -> choose neighbor with highest priority
+
         # Find nearby agents
         neighbors = (n for n in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False) if n.condition == "Unaware")
         
+        priority_factor = 0
+        
+
         try:
             target = next(neighbors)
         except StopIteration:
