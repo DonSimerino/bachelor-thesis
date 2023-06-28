@@ -80,8 +80,8 @@ class InfoModel(mesa.Model):
             # Assign each agent their respective personalty
             for group, agents in group_agents.items():
                 for agent in agents:
-                    agent.personality_type = group
-                    agent.parameters = self.get_personality(group)[1] 
+                    agent.personality_name = group
+                    agent.personality_values = self.get_personality(group)[1] 
                 
                 
 
@@ -95,8 +95,8 @@ class InfoModel(mesa.Model):
         # }
 
         # for agent in self.grid.get_cell_list_contents(agent_locations):
-        #     if agent.personality_type in count_personality:
-        #         count_personality[agent.personality_type] += 1
+        #     if agent.personality_name in count_personality:
+        #         count_personality[agent.personality_name] += 1
 
         # for personality, count in count_personality.items():
         #     print(f"{personality}: {count}")
@@ -123,17 +123,24 @@ class InfoModel(mesa.Model):
 
     def get_personality(self, type_name=None):
         personalities = {
-            "confident": {'agreeableness': 1, 'openness': 1, 'conscientiousness': 1, 'extraversion': 1, 'neuroticism': 0.2},
-            "reserved": {'agreeableness': 1, 'openness': .6667, 'conscientiousness': .3334, 'extraversion': .3334, 'neuroticism': 0.2},
-            "resilient": {'agreeableness': .3334, 'openness': 1, 'conscientiousness': 1, 'extraversion': .6667, 'neuroticism': 0.2},
-            "undercontrolled": {'agreeableness': 1, 'openness': .3334, 'conscientiousness': .3334, 'extraversion': .6667, 'neuroticism': 0.2},
-            "overcontrolled": {'agreeableness': .3334, 'openness': .3334, 'conscientiousness': .3334, 'extraversion': .3334, 'neuroticism': 0.2},
+            "confident": {'agreeableness': 0.5, 'openness': 0.6, 'conscientiousness': 0.5, 'extraversion': 0.6, 'neuroticism': 0.5},
+            "reserved": {'agreeableness': 0.6, 'openness': 0.2, 'conscientiousness': 0.6, 'extraversion': 0.2, 'neuroticism': 0.2},
+            "resilient": {'agreeableness': 0.8, 'openness': 0.4, 'conscientiousness': 0.8, 'extraversion': 0.8, 'neuroticism': 0.2},
+            "undercontrolled": {'agreeableness': 0.2, 'openness': 0.4, 'conscientiousness': 0.2, 'extraversion': 0.4, 'neuroticism': 0.8},
+            "overcontrolled": {'agreeableness': 0.3, 'openness': 0.3, 'conscientiousness': 0.4, 'extraversion': 0.2, 'neuroticism': 0.9},
             "heterogeneous": {'confident': 0.221, 'reserved': 0.2541, 'resilient': 0.1631, 'undercontrolled': 0.2401, 'overcontrolled': 0.1217}
         }
         return next((key, value) for key, value in personalities.items() if key == type_name)
 
       
-
+    # Low: 0.2
+    # Medium/Low: 0.3
+    # Moderate: 0.4
+    # Medium: 0.5
+    # Moderately High/Positive: 0.6
+    # Pronounced: 0.7
+    # High: 0.8
+    # pronounced: 0.9
 
 
     @staticmethod

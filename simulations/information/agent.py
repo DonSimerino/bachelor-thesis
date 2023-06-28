@@ -3,7 +3,7 @@ import random
 import math
 import time
 # import pdb
-# pdb.set_trace()  # set a breakpoint
+#   pdb.set_trace() # set a breakpoint
 
 
 
@@ -15,14 +15,12 @@ class InfoAgent(mesa.Agent):
         super().__init__(pos, model)
         self.pos = pos
         self.action_queue = [self.wait]
-        self.personality_type = personality[0]
-        self.parameters = personality[1]
+        self.personality_name = personality[0]
+        self.personality_values = personality[1]
         self.condition = condition
+        self.is_disseminative = False
 
-        self.sensitivity_index = 1#personality["neuroticism"]
-        self.contagion_parameter = 0.1
-        self.social_reinforcement_factor = 0.1
-        self.amount_of_tries = 0
+        self.amount_of_tries = 1
         self.wait_counter = 0
 
         urgency, complexity = message.split(" - ")
@@ -48,74 +46,102 @@ class InfoAgent(mesa.Agent):
 
     # Condition: "Disseminative" -> "Informed" (done)
     def share_information(self):
+        if not self.personality_name == 'heterogeneous':
 
-        # Select neighbor based on dij
-        neighbor = self.choose_neighbor()
+            # Select neighbor based on dij
+            neighbor = self.choose_neighbor()
 
-        if neighbor:
-  
-            # Try to pass on the message
-            if random.random() < neighbor.sensitivity_index:
+            if neighbor:
+    
+                # # Try to pass on the message
+                # if random.random() < neighbor.sensitivity_index:
                 neighbor.action_queue = [neighbor.accept_information]
                 neighbor.message = self.message
             
-            self.condition = "Informed"
-            self.action_queue= [self.try_disseminate]
-            #TODO: Mark sender as +1 or smth -> can only send once  
-        else:            
-            self.condition = "Informed"
-            self.action_queue = [self.wait]
+                self.condition = "Informed"
+                self.action_queue= [self.try_disseminate]
+                #TODO: Mark sender as +1 or smth -> can only send once  
+            
+            else:            
+                self.condition = "Informed"
+                self.action_queue = [self.wait]
+        else:
+            pass
 
 
 
     # Condition: "Unaware" -> "Informed"
     def accept_information(self):
-        # TODO: b -> social reinforcement || m -> amount of tries || x -> openess/ extraversion
-        b = 0.8#self.social_reinforcement_factor
-        m = 2#self.amount_of_tries
-        x = 0.3#self.contagion_parameter
+        if not self.personality_name == 'heterogeneous':
+            b = 0.2 # social_reinforcement_factor
+            m = self.amount_of_tries
+            x = self.personality_values['agreeableness']
 
-        accept_chance = 1 - (1 - x) * math.exp(-b * (m - 1))
-        # print(f"accept_chance {accept_chance}")
+            accept_chance = 1 - (1 - x) * math.exp(-b * (m - 1))
+            # print(f"accept_chance {accept_chance}")
 
 
-        if random.random() < accept_chance:
-            self.condition = "Informed"
-            self.action_queue = [self.try_disseminate]
+            if random.random() < accept_chance:
+                self.condition = "Informed"
+                self.action_queue = [self.try_disseminate]
+            else:
+                self.condition = "Unaware"
+                self.amount_of_tries += 1
+                self.action_queue = [self.wait]
         else:
-            self.condition = "Unaware"
-            self.action_queue = [self.wait]
+            pass
 
 
     # Condition: "Informed" -> "Disseminative" / "Panic" -> "Exhausted"
     def try_disseminate(self):
-        #TODO: panic, disseminate y -> neuroticism
-        choose_dissemination = 0.8 # 1- self.neuroticism
-        choose_panic = 0.1 #self.neuroticism
+        if not self.personality_name == 'heterogeneous':
 
-        if random.random() < choose_dissemination:
-            self.condition = "Disseminative"
-            self.action_queue = [self.share_information]
+            choose_dissemination = self.personality_values['extraversion']
+            choose_panic = self.personality_values['neuroticism']/3
+            decision_index = (1- self.personality_values['neuroticism'])
 
-        elif random.random() < choose_panic:
-            self.condition = "Panic"
-            self.action_queue = [self.wait]
+            # "confident": 0.55 .. 0.5
+            # "reserved": 0.5 .. 0.8
+            # "resilient": 0.8 .. 0.8
+            # "undercontrolled": 0.3 .. 0.2
+            # "overcontrolled": 0.15 .. 0.1
+            
+            if random.random() < decision_index:#choose_dissemination:
+                self.condition = "Disseminative"
+                self.action_queue = [self.share_information]
+                self.is_disseminative = True
+
+
+            elif random.random() < choose_panic:
+                if not self.is_disseminative:
+                    self.condition = "Panic"
+                    self.action_queue = [self.wait]
+
+        else:
+            pass
 
 
     def choose_neighbor(self):
-        #TODO: give agents 'priority_factor' -> choose neighbor with highest priority
+        # Find nearby agents and calculate priority index in a single pass
+        max_priority_index = 0
+        max_priority_neighbors = []
 
-        # Find nearby agents
-        neighbors = (n for n in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False) if n.condition == "Unaware")
-        
-        priority_factor = 0
-        
+        for neighbor in self.model.grid.get_neighbors(self.pos, moore=True, include_center=False):
+            if neighbor.condition == "Unaware":
+                unaware_count = sum(1 for n in self.model.grid.get_neighbors(neighbor.pos, moore=True) if n.condition == "Unaware")
 
-        try:
-            target = next(neighbors)
-        except StopIteration:
+                if unaware_count > max_priority_index:
+                    max_priority_index = unaware_count
+                    max_priority_neighbors = [neighbor]
+                elif unaware_count == max_priority_index:
+                    max_priority_neighbors.append(neighbor)
+
+        if not max_priority_neighbors:
             print("No neighbor found.")
-            target = ""
+            return None
+
+        # Randomly select one of the neighbors with the highest priority index
+        target = random.choice(max_priority_neighbors)
         return target
 
 
