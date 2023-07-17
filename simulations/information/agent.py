@@ -9,7 +9,7 @@ import time
 
 class InfoAgent(mesa.Agent):
 
-    def __init__(self, pos, model, personality, message, condition="Unaware"):
+    def __init__(self, pos, model, personality, message, density, condition="Unaware"):
         """ Create a new agent. """
 
         super().__init__(pos, model)
@@ -19,12 +19,13 @@ class InfoAgent(mesa.Agent):
         self.personality_values = personality[1]
         self.condition = condition
         self.is_disseminative = False
+        self.density = density
 
         self.amount_of_tries = 1
         self.wait_counter = 0
 
-        urgency, complexity = message.split(" - ")
-        self.message = Message('Go to Exit', urgency, complexity)
+        # urgency, complexity = message.split(" - ")
+        self.message = Message('Go to Exit', "urgency", "complexity")
 
 
     def step(self):
@@ -78,7 +79,7 @@ class InfoAgent(mesa.Agent):
             x = self.personality_values['agreeableness']
 
             accept_chance = 1 - (1 - x) * math.exp(-b * (m - 1))
-            # print(f"accept_chance {accept_chance}")
+            # print(f"accept_chance {accept_chance} from agent {self}")
 
 
             if random.random() < accept_chance:
@@ -95,27 +96,28 @@ class InfoAgent(mesa.Agent):
     # Condition: "Informed" -> "Disseminative" / "Panic" -> "Exhausted"
     def try_disseminate(self):
         if not self.personality_name == 'heterogeneous':
-
-            choose_dissemination = self.personality_values['extraversion']
-            choose_panic = self.personality_values['neuroticism']/3
-            decision_index = (1- self.personality_values['neuroticism'])
-
-            # "confident": 0.55 .. 0.5
-            # "reserved": 0.5 .. 0.8
-            # "resilient": 0.8 .. 0.8
-            # "undercontrolled": 0.3 .. 0.2
-            # "overcontrolled": 0.15 .. 0.1
             
-            if random.random() < decision_index:#choose_dissemination:
+            neuroticism = (self.personality_values['neuroticism']/4) * self.density
+            
+            # choose_dissemination = self.personality_values['extraversion']
+            # decision_index = (1- self.personality_values['neuroticism'])
+
+            u = random.random()
+            # print(f"u {u}, extra {1-neuroticism}, panic {neuroticism}, agent {self.pos}")
+            
+            if u >= neuroticism: 
                 self.condition = "Disseminative"
                 self.action_queue = [self.share_information]
                 self.is_disseminative = True
 
 
-            elif random.random() < choose_panic:
-                if not self.is_disseminative:
+            elif u < neuroticism: 
+                if not self.is_disseminative and not self.pos == (0,0):
                     self.condition = "Panic"
                     self.action_queue = [self.wait]
+            
+                # else:
+                #     print(f"This agent this nothing: {self}")
 
         else:
             pass
@@ -137,7 +139,7 @@ class InfoAgent(mesa.Agent):
                     max_priority_neighbors.append(neighbor)
 
         if not max_priority_neighbors:
-            print("No neighbor found.")
+            # print("No neighbor found.")
             return None
 
         # Randomly select one of the neighbors with the highest priority index
