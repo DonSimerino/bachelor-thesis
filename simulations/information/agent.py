@@ -9,7 +9,7 @@ import time
 
 class InfoAgent(mesa.Agent):
 
-    def __init__(self, pos, model, personality, message, density, condition="Unaware"):
+    def __init__(self, pos, model, personality, density, condition="Unaware"):
         """ Create a new agent. """
 
         super().__init__(pos, model)
@@ -54,14 +54,11 @@ class InfoAgent(mesa.Agent):
 
             if neighbor:
     
-                # # Try to pass on the message
-                # if random.random() < neighbor.sensitivity_index:
                 neighbor.action_queue = [neighbor.accept_information]
                 neighbor.message = self.message
             
                 self.condition = "Informed"
                 self.action_queue= [self.try_disseminate]
-                #TODO: Mark sender as +1 or smth -> can only send once  
             
             else:            
                 self.condition = "Informed"
@@ -93,7 +90,7 @@ class InfoAgent(mesa.Agent):
             pass
 
 
-    # Condition: "Informed" -> "Disseminative" / "Panic" -> "Exhausted"
+    # Condition: "Informed" -> "Disseminative" / "Stressed" -> "Exhausted"
     def try_disseminate(self):
         if not self.personality_name == 'heterogeneous':
             
@@ -103,7 +100,7 @@ class InfoAgent(mesa.Agent):
             # decision_index = (1- self.personality_values['neuroticism'])
 
             u = random.random()
-            # print(f"u {u}, extra {1-neuroticism}, panic {neuroticism}, agent {self.pos}")
+            # print(f"u {u}, extra {1-neuroticism}, Stressed {neuroticism}, agent {self.pos}")
             
             if u >= neuroticism: 
                 self.condition = "Disseminative"
@@ -113,7 +110,7 @@ class InfoAgent(mesa.Agent):
 
             elif u < neuroticism: 
                 if not self.is_disseminative and not self.pos == (0,0):
-                    self.condition = "Panic"
+                    self.condition = "Stressed"
                     self.action_queue = [self.wait]
             
                 # else:
@@ -149,14 +146,14 @@ class InfoAgent(mesa.Agent):
 
 
     def wait(self):
-        if self.condition == "Panic":
+        if self.condition == "Stressed":
             if self.wait_counter < 10:
                 self.wait_counter += 1
             else:
                 self.condition = "Exhausted"
                 self.wait_counter = 0
         else:
-            # Handle the case when the condition is not "Panic"
+            # Handle the case when the condition is not "Stressed"
             pass
 
     
