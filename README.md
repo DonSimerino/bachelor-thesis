@@ -2,22 +2,12 @@ bachelor-thesis
 =========================================
 This bachelor thesis related project is using the Mesa Python Framework. Mesa allows users to quickly create agent-based models using built-in core components (such as spatial grids and agent schedulers) or customized implementations; in this case information dissimenation in crowded enviroments; the tool offers a variety of built-in configuraitions to visualize different szenarios and analyze their results using Python's data analysis tools. 
 
-.. image:: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/Mesa_Screenshot.png
-   :width: 100%
-   :scale: 100%
-   :alt: A screenshot of the Schelling Model in Mesa
-
-*Above: A Mesa implementation of the Schelling segregation model,
-being visualized in a browser window and analyzed in a Jupyter
-notebook.*
-
 Features
 ------------
 
-* Modular components
-* Browser-based visualization
-* Built-in tools for analysis
-* Example model library
+* Change agent density
+* Configure number of dissemination start points
+* Various agent personality types
 
 Local Setup (venv)
 ------------
